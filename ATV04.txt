@@ -1,0 +1,45 @@
+DELIMITER //
+CREATE trigger tri_vendas_ai
+AFTER ON comivenda
+FOR EACH ROW
+BEGIN
+    ## declaro as variáveis que utilizarei
+declare    close busca_itens;
+
+    SET vtotal_item = NEW.n_vlvenda * NEW.n_qtvenda;
+
+    UPDATE comvenda SET n_totavenda = vtotal_itens - vtotal_item
+    WHERE n_numevenda = new.n_numevenda;
+end$$
+
+    DECLARE vtotal_itens float(10,2) DEFAULT 0;
+    DECLARE vtotal_item float(10,2) DEFAULT 0;
+    DECLARE total_item float(10,2);
+    DECLARE qt_item INT DEFAULT 0;
+    DECLARE fimloop INT DEFAULT 0;
+
+    ## cursor para buscar os itens já registrados da venda
+    declare busca_itens cursor for
+        select n_vlvenda, n_qtvenda
+        from comivenda
+        where n_numevenda = new.n_numevenda;
+
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET fimloop = 1;
+
+    open busca_itens;
+        ## declaro e inicio o loop
+        itens : loop
+
+            IF fimloop = 1 THEN
+                LEAVE itens;
+            END IF;
+
+            fetch busca_itens into total_item, qt_item;
+
+            ## somo o valor total dos itens (produtos)
+            SET vtotal_item = total_item * qt_item;
+            set vtotal_itens = vtotal_itens + vtotal_item;
+
+        END LOOP itens;
+
+delimiter ;
